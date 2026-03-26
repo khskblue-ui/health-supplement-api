@@ -9,7 +9,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost/health_supplement"
 
     # Food Safety Korea API
+    # I0030/C003/I0310: 공공데이터포털(data.go.kr)에서 별도 신청
     FOOD_SAFETY_API_KEY: str = ""
+    # I0320 전용 키 (식품이력추적관리 등록현황) - 현재 보유
+    FOOD_SAFETY_API_KEY_I0320: str = ""
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000"

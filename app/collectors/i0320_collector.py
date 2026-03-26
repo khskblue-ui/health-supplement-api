@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 from app.collectors.base import FoodSafetyAPIClient
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -9,6 +10,10 @@ SERVICE_ID = "I0320"
 
 class I0320Collector(FoodSafetyAPIClient):
     """이력추적관리 등록현황 (I0320) 수집기."""
+
+    def __init__(self):
+        # I0320 전용 키 우선 사용
+        super().__init__(api_key=settings.FOOD_SAFETY_API_KEY_I0320 or settings.FOOD_SAFETY_API_KEY)
 
     async def fetch_by_company(
         self, company_name: str, mod_date: str | None = None

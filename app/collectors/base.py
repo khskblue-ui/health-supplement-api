@@ -15,8 +15,8 @@ TIMEOUT_SECONDS = 30
 class FoodSafetyAPIClient:
     """식품안전나라 공공 API 공통 클라이언트."""
 
-    def __init__(self):
-        self.api_key = settings.FOOD_SAFETY_API_KEY
+    def __init__(self, api_key: str | None = None):
+        self.api_key = api_key or settings.FOOD_SAFETY_API_KEY
         self.base_url = FOOD_SAFETY_BASE_URL
 
     def _build_url(self, service_id: str, start: int, end: int) -> str:
