@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     APP_TITLE: str = "Health Supplement Competitor Monitor API"
     APP_VERSION: str = "1.0.0"
 
+    @field_validator('DATABASE_URL', mode='before')
+    @classmethod
+    def fix_database_url(cls, v: str) -> str:
+        if v and v.startswith('postgresql://'):
+            return v.replace('postgresql://', 'postgresql+asyncpg://', 1)
+        return v
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]

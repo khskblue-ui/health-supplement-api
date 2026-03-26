@@ -23,6 +23,8 @@ except ImportError:
 # 환경변수에서 DATABASE_URL 오버라이드
 database_url = os.environ.get("DATABASE_URL")
 if database_url:
+    if database_url.startswith('postgresql://'):
+        database_url = database_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
     config.set_main_option("sqlalchemy.url", database_url)
 
 # 모델 메타데이터 등록 (autogenerate 지원)
