@@ -8,20 +8,18 @@ class RegistrationSchema(BaseModel):
 
     id: int
     competitor_id: int
-    license_id: Optional[int] = None
-    license_no: str
-    report_no: str
-    product_name: str
-    report_date: Optional[str] = None
-    change_date: Optional[str] = None
-    functionality: Optional[str] = None
-    raw_material: Optional[str] = None
-    raw_material_detail: Optional[str] = None
-    traceability_registered: bool = False
-    traceability_reg_num: Optional[str] = None
-    traceability_barcode: Optional[str] = None
-    traceability_mod_dt: Optional[str] = None
-    hfood_yn: Optional[str] = None
+    prdlst_report_no: str
+    product_name: Optional[str] = None
+    product_type: Optional[str] = None
+    food_type: Optional[str] = None
+    btype: Optional[str] = None
+    brnch_nm: Optional[str] = None
+    mnft_day: Optional[str] = None
+    crcl_prd: Optional[str] = None
+    mod_dt: Optional[str] = None
+    reg_num: Optional[str] = None
+    food_histrace_num: Optional[str] = None
+    barcode: Optional[str] = None
     source_api: str
     collected_at: datetime
 

@@ -1,101 +1,95 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.competitor import Competitor
 from app.models.registration import ProductRegistration
-from app.services.analysis_service import AnalysisService
-from app.schemas.competitor import CompetitorSchema, CompetitorDetailSchema, LicenseSchema, MonthlyTrend, YearlySummarySchema
+from app.schemas.competitor import CompetitorSchema, CompetitorDetailSchema, MonthlyTrend, YearlySummarySchema
 
 router = APIRouter()
-_analysis = AnalysisService()
 
 
 @router.get("/competitors", response_model=list[CompetitorSchema])
 async def list_competitors(db: AsyncSession = Depends(get_db)):
-    """4개사 목록 + 총 품목 수."""
     result = await db.execute(select(Competitor).order_by(Competitor.id))
     competitors = result.scalars().all()
 
     out = []
     for comp in competitors:
-        cnt_result = await db.execute(
+        cnt = await db.execute(
             select(func.count(ProductRegistration.id)).where(
                 ProductRegistration.competitor_id == comp.id
             )
         )
-        total = cnt_result.scalar() or 0
-        out.append(
-            CompetitorSchema(
-                id=comp.id,
-                name=comp.name,
-                name_short=comp.name_short,
-                total_registrations=total,
-                created_at=comp.created_at,
-                updated_at=comp.updated_at,
-            )
-        )
+        out.append(CompetitorSchema(
+            id=comp.id,
+            name=comp.name,
+            name_short=comp.name_short,
+            total_registrations=cnt.scalar() or 0,
+            created_at=comp.created_at,
+        ))
     return out
 
 
 @router.get("/competitors/{competitor_id}", response_model=CompetitorDetailSchema)
 async def get_competitor(competitor_id: int, db: AsyncSession = Depends(get_db)):
-    """경쟁사 상세 + 최근 12개월 월별 신고 추이 + 전체 라이선스 목록."""
-    result = await db.execute(
-        select(Competitor)
-        .where(Competitor.id == competitor_id)
-        .options(selectinload(Competitor.licenses))
-    )
+    result = await db.execute(select(Competitor).where(Competitor.id == competitor_id))
     comp = result.scalar_one_or_none()
     if not comp:
         raise HTTPException(status_code=404, detail="Competitor not found")
 
-    cnt_result = await db.execute(
+    total = (await db.execute(
         select(func.count(ProductRegistration.id)).where(
             ProductRegistration.competitor_id == competitor_id
         )
+    )).scalar() or 0
+
+    # 최근 12개월 월별 추이 (mod_dt 기준)
+    rows = await db.execute(
+        select(
+            func.substr(ProductRegistration.mod_dt, 1, 6).label("ym"),
+            func.count(ProductRegistration.id).label("cnt"),
+        )
+        .where(
+            ProductRegistration.competitor_id == competitor_id,
+            ProductRegistration.mod_dt.isnot(None),
+        )
+        .group_by("ym")
+        .order_by("ym")
+        .limit(12)
     )
-    total = cnt_result.scalar() or 0
-
-    trend_data = await _analysis.get_monthly_trend(db, competitor_id, months=12)
-
-    licenses = [LicenseSchema.model_validate(lic) for lic in comp.licenses]
-    monthly_trend = [MonthlyTrend(**t) for t in trend_data]
+    monthly_trend = [
+        MonthlyTrend(year_month=f"{r.ym[:4]}-{r.ym[4:6]}", count=r.cnt)
+        for r in rows.all()
+    ]
 
     return CompetitorDetailSchema(
         id=comp.id,
         name=comp.name,
         name_short=comp.name_short,
         total_registrations=total,
-        licenses=licenses,
         monthly_trend=monthly_trend,
         created_at=comp.created_at,
-        updated_at=comp.updated_at,
     )
 
 
 @router.get("/competitors/{competitor_id}/yearly", response_model=list[YearlySummarySchema])
 async def get_competitor_yearly(competitor_id: int, db: AsyncSession = Depends(get_db)):
-    """경쟁사의 연도별 신고 건수 요약."""
-    result = await db.execute(
-        select(Competitor).where(Competitor.id == competitor_id)
-    )
-    comp = result.scalar_one_or_none()
-    if not comp:
+    result = await db.execute(select(Competitor).where(Competitor.id == competitor_id))
+    if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Competitor not found")
 
     rows = await db.execute(
         select(
-            func.extract("year", func.to_date(ProductRegistration.report_date, "YYYYMMDD")).label("year"),
-            func.count(ProductRegistration.id).label("count"),
+            func.substr(ProductRegistration.mod_dt, 1, 4).label("yr"),
+            func.count(ProductRegistration.id).label("cnt"),
         )
         .where(
             ProductRegistration.competitor_id == competitor_id,
-            ProductRegistration.report_date.isnot(None),
+            ProductRegistration.mod_dt.isnot(None),
         )
-        .group_by("year")
-        .order_by(func.extract("year", func.to_date(ProductRegistration.report_date, "YYYYMMDD")).desc())
+        .group_by("yr")
+        .order_by(func.substr(ProductRegistration.mod_dt, 1, 4).desc())
     )
-    return [YearlySummarySchema(year=int(row.year), count=row.count) for row in rows.all()]
+    return [YearlySummarySchema(year=int(r.yr), count=r.cnt) for r in rows.all()]

@@ -1,17 +1,5 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional
-
-
-class LicenseSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    competitor_id: int
-    license_no: str
-    plant_name: Optional[str] = None
-    is_active: bool
-    created_at: datetime
 
 
 class MonthlyTrend(BaseModel):
@@ -27,7 +15,6 @@ class CompetitorSchema(BaseModel):
     name_short: str
     total_registrations: int = 0
     created_at: datetime
-    updated_at: datetime
 
 
 class YearlySummarySchema(BaseModel):
@@ -36,13 +23,9 @@ class YearlySummarySchema(BaseModel):
 
 
 class CompetitorDetailSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
     name: str
     name_short: str
     total_registrations: int = 0
-    licenses: list[LicenseSchema] = []
     monthly_trend: list[MonthlyTrend] = []
     created_at: datetime
-    updated_at: datetime
