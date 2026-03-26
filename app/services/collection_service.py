@@ -64,15 +64,12 @@ class CollectionService:
     ) -> None:
         for row in i0320_rows:
             report_no = row.get("report_no", "")
-            license_no = row.get("license_no", "")
             if not report_no:
                 continue
+            # I0320 응답에는 LCNS_NO 없음 → report_no 단독 매칭
             await session.execute(
                 update(ProductRegistration)
-                .where(
-                    ProductRegistration.report_no == report_no,
-                    ProductRegistration.license_no == license_no,
-                )
+                .where(ProductRegistration.report_no == report_no)
                 .values(
                     traceability_registered=True,
                     traceability_reg_num=row.get("traceability_reg_num"),

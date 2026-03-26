@@ -29,12 +29,13 @@ class I0320Collector(FoodSafetyAPIClient):
 
     def parse_row(self, row: dict[str, Any]) -> dict[str, Any]:
         """I0320 row → traceability 업데이트용 dict."""
+        # FOOD_TYPE == "건기" 이면 건강기능식품
+        food_type = row.get("FOOD_TYPE", "")
         return {
             "report_no": row.get("PRDLST_REPORT_NO", ""),
-            "license_no": row.get("LCNS_NO", ""),
             "traceability_registered": True,
-            "traceability_reg_num": row.get("REG_NO", None),
-            "traceability_barcode": row.get("BARCODE_NO", None),
+            "traceability_reg_num": row.get("REG_NUM", None),
+            "traceability_barcode": row.get("PDT_BARCD", None) or None,
             "traceability_mod_dt": row.get("MOD_DT", None),
-            "hfood_yn": row.get("HFOOD_YN", None),
+            "hfood_yn": "Y" if food_type == "건기" else "N",
         }
