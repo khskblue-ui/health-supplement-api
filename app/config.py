@@ -1,12 +1,15 @@
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 from typing import List
-import os
+from pathlib import Path
+
+# 프로젝트 루트 (app/config.py 기준 상위 디렉토리)
+_PROJECT_ROOT = Path(__file__).parent.parent
 
 
 class Settings(BaseSettings):
-    # Database
-    DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost/health_supplement"
+    # Database (로컬 개발: SQLite, 프로덕션: PostgreSQL URL로 교체)
+    DATABASE_URL: str = f"sqlite+aiosqlite:///{_PROJECT_ROOT}/health_supplement.db"
 
     # Food Safety Korea API
     # I0030/C003/I0310: 공공데이터포털(data.go.kr)에서 별도 신청

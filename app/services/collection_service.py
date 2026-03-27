@@ -3,7 +3,6 @@ from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
@@ -34,10 +33,22 @@ class CollectionService:
 
         inserted = 0
         if valid:
-            stmt = pg_insert(ProductRegistration).values(valid)
-            stmt = stmt.on_conflict_do_nothing(constraint="uq_histrace_num")
-            result = await session.execute(stmt)
-            inserted += result.rowcount or 0
+            # DB-agnostic upsert: food_histrace_num으로 중복 확인 후 삽입
+            existing_nums = set(
+                (
+                    await session.execute(
+                        select(ProductRegistration.food_histrace_num).where(
+                            ProductRegistration.food_histrace_num.in_(
+                                [r["food_histrace_num"] for r in valid]
+                            )
+                        )
+                    )
+                ).scalars().all()
+            )
+            new_records = [r for r in valid if r["food_histrace_num"] not in existing_nums]
+            for rec in new_records:
+                session.add(ProductRegistration(**rec))
+            inserted += len(new_records)
 
         if skip:
             for rec in skip:
