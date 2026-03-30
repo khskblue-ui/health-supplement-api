@@ -7,7 +7,12 @@ _is_sqlite = settings.DATABASE_URL.startswith("sqlite")
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=not settings.is_production,
-    **({} if _is_sqlite else {"pool_pre_ping": True, "pool_size": 5, "max_overflow": 10}),
+    **({} if _is_sqlite else {
+        "pool_pre_ping": True,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "connect_args": {"ssl": True},
+    }),
 )
 
 AsyncSessionLocal = async_sessionmaker(
