@@ -110,8 +110,20 @@ class CollectionService:
         logger.info("Daily scan complete: total=%d", total)
         return {"target_date": target_date, "total": total}
 
-    async def run_initial_load(self) -> dict[str, Any]:
+    async def run_initial_load(self, force: bool = False) -> dict[str, Any]:
         """전체 이력 초기 적재 (날짜 필터 없이 전체 수집)."""
+        async with AsyncSessionLocal() as session:
+            if not force:
+                existing = await session.execute(
+                    select(CollectionJob).where(
+                        CollectionJob.job_type == "initial",
+                        CollectionJob.status == "completed",
+                    ).limit(1)
+                )
+                if existing.scalar_one_or_none():
+                    logger.info("Initial load already completed. Skipping. Use force=True to override.")
+                    return {"type": "initial_load", "skipped": True, "reason": "already_completed"}
+
         logger.info("Starting I0320 initial load")
         total = 0
 
