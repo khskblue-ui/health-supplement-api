@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     # I0320 전용 키 (식품이력추적관리 등록현황) - 현재 보유
     FOOD_SAFETY_API_KEY_I0320: str = ""
 
-    # CORS
-    CORS_ORIGINS: str = "http://localhost:3000"
+    # CORS (쉼표 구분 목록 또는 "*")
+    CORS_ORIGINS: str = "*"
 
     # Environment
     ENVIRONMENT: str = "development"
