@@ -73,7 +73,14 @@ class FoodSafetyAPIClient:
                     if isinstance(service_data.get("RESULT"), dict)
                     else ""
                 )
-                # INFO-000: 정상, INFO-200: 데이터 없음
+                # INFO-000: 정상, INFO-200: 데이터 없음, INFO-300: 호출한도 초과
+                if result_code == "INFO-300":
+                    logger.error(
+                        "[%s] API quota exceeded (INFO-300): %s",
+                        service_id,
+                        service_data.get("RESULT", {}).get("MSG", ""),
+                    )
+                    raise RuntimeError(f"API quota exceeded for {service_id}: INFO-300")
                 if result_code == "INFO-200" or not service_data:
                     break
                 rows = service_data.get("row", [])
