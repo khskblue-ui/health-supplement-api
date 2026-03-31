@@ -25,6 +25,13 @@ database_url = os.environ.get("DATABASE_URL")
 if database_url:
     if database_url.startswith('postgresql://'):
         database_url = database_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+    elif database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql+asyncpg://', 1)
+    # asyncpg does not accept sslmode — strip it from the URL
+    if '?' in database_url:
+        base, query = database_url.split('?', 1)
+        params = [p for p in query.split('&') if not p.startswith('sslmode=')]
+        database_url = base + ('?' + '&'.join(params) if params else '')
     config.set_main_option("sqlalchemy.url", database_url)
 
 # 모델 메타데이터 등록 (autogenerate 지원)
