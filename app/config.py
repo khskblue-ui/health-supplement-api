@@ -30,16 +30,25 @@ class Settings(BaseSettings):
     @field_validator('DATABASE_URL', mode='before')
     @classmethod
     def fix_database_url(cls, v: str) -> str:
+        import sys
         if not v:
+            print("[DB-DEBUG] DATABASE_URL is empty, using default", file=sys.stderr)
             return v
+        # Log scheme and query string (no password)
+        scheme = v.split('://')[0] if '://' in v else 'unknown'
+        query_raw = v.split('?', 1)[1] if '?' in v else '(none)'
+        print(f"[DB-DEBUG] scheme={scheme!r} query={query_raw!r}", file=sys.stderr)
+
         if v.startswith('postgresql://'):
             v = v.replace('postgresql://', 'postgresql+asyncpg://', 1)
+        elif v.startswith('postgres://'):
+            v = v.replace('postgres://', 'postgresql+asyncpg://', 1)
         # asyncpg does not accept sslmode — strip it from the URL
-        # SSL is handled via connect_args in database.py
         if '?' in v:
             base, query = v.split('?', 1)
             params = [p for p in query.split('&') if not p.startswith('sslmode=')]
             v = base + ('?' + '&'.join(params) if params else '')
+        print(f"[DB-DEBUG] final scheme={v.split('://')[0]!r} has_sslmode={'sslmode=' in v}", file=sys.stderr)
         return v
 
     @property
